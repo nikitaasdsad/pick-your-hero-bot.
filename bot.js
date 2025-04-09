@@ -6,7 +6,7 @@ let orderId = 0;  // Переменная для отслеживания ном
 let messages = {};  // Объект для хранения ID сообщений
 let usersInProcess = {};  // Объект для отслеживания пользователей, которые уже в процессе оформления заявки
 
-// Обработка команды /start (если нужно)
+// Обработка команды /start
 bot.start((ctx) => {
   const userId = ctx.from.id; // Получаем ID пользователя
 
@@ -86,22 +86,17 @@ bot.action('photo', (ctx) => {
 bot.on('photo', async (ctx) => {
   const userId = ctx.from.id; // Получаем ID пользователя
 
-  // Проверяем, не отправил ли он уже запрос
-  if (usersInProcess[userId]) {
-    return ctx.reply('Вы уже оформили заявку. Хотите отменить?', {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '❌ Отменить заявку', callback_data: 'cancel_request' }]
-        ]
-      }
-    });
+  // Если пользователь уже в процессе оформления заявки, продолжаем
+  if (!usersInProcess[userId]) {
+    // Если еще нет заявки, отправим ответ, что он не начал заявку
+    return ctx.reply('Вы не начали оформление заявки. Нажмите на "Оформить заявку".');
   }
 
   orderId++;  // Увеличиваем номер заказа
   const user = ctx.from.username || ctx.from.first_name;  // Получаем имя или ник пользователя
   const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
 
-  // Отправляем ссылку админу
+  // Отправляем сообщение админу
   const message = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
 
   // Сохраняем ID сообщения для удаления в случае отмены
