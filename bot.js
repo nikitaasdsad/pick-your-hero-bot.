@@ -4,9 +4,17 @@ const bot = new Telegraf('7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0');  // 
 const ADMIN_ID = '744187097';  // Твой Telegram ID
 let orderId = 0;  // Переменная для отслеживания номера заказа
 let messages = {};  // Объект для хранения ID сообщений
+let usersInProcess = {};  // Объект для отслеживания пользователей, которые уже в процессе оформления заявки
 
 // Обработка команды /start
 bot.start((ctx) => {
+  const userId = ctx.from.id; // Получаем ID пользователя
+
+  // Проверяем, не отправил ли он уже запрос
+  if (usersInProcess[userId]) {
+    return ctx.reply('Вы уже оформили заявку. Ожидайте обработки.');
+  }
+
   return ctx.reply('Добро пожаловать в Pick Your Hero!', {
     reply_markup: {
       inline_keyboard: [
@@ -18,6 +26,13 @@ bot.start((ctx) => {
 
 // Обработка кнопки "Оформить заявку"
 bot.action('order', (ctx) => {
+  const userId = ctx.from.id; // Получаем ID пользователя
+
+  // Проверяем, не отправил ли он уже запрос
+  if (usersInProcess[userId]) {
+    return ctx.reply('Вы уже оформили заявку. Ожидайте обработки.');
+  }
+
   return ctx.editMessageText('Выберите способ оформления:', {
     reply_markup: {
       inline_keyboard: [
@@ -30,6 +45,16 @@ bot.action('order', (ctx) => {
 
 // Обработка выбора "Скин по фото"
 bot.action('photo', (ctx) => {
+  const userId = ctx.from.id; // Получаем ID пользователя
+
+  // Проверяем, не отправил ли он уже запрос
+  if (usersInProcess[userId]) {
+    return ctx.reply('Вы уже оформили заявку. Ожидайте обработки.');
+  }
+
+  // Помечаем пользователя как того, кто оформляет заявку
+  usersInProcess[userId] = true;
+
   return ctx.editMessageText('Отправьте фото вашего скина!', {
     reply_markup: {
       inline_keyboard: [
@@ -41,6 +66,13 @@ bot.action('photo', (ctx) => {
 
 // Обработка сообщений с фотографиями
 bot.on('photo', async (ctx) => {
+  const userId = ctx.from.id; // Получаем ID пользователя
+
+  // Проверяем, не отправил ли он уже запрос
+  if (usersInProcess[userId]) {
+    return ctx.reply('Вы уже оформили заявку. Ожидайте обработки.');
+  }
+
   orderId++;  // Увеличиваем номер заказа
   const user = ctx.from.username || ctx.from.first_name;  // Получаем имя или ник пользователя
   const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
@@ -71,6 +103,9 @@ bot.on('photo', async (ctx) => {
 
   // Ответ пользователю
   ctx.reply('Спасибо за отправленное фото! Мы обработаем ваш запрос.', cancelButton);
+
+  // Помечаем пользователя как того, кто оформил заявку
+  usersInProcess[userId] = true;
 });
 
 // Обработка отмены запроса
@@ -88,6 +123,10 @@ bot.action(/^cancel_(\d+)$/, (ctx) => {
     // Удаляем ID сообщения из объекта
     delete messages[orderId];
   }
+
+  // Освобождаем пользователя для отправки нового запроса
+  const userId = ctx.from.id;
+  delete usersInProcess[userId];
 
   // Возвращаем пользователя к выбору оформления заявки
   ctx.editMessageText('Заказ был отменен. Выберите способ оформления:', {
