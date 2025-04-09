@@ -1,5 +1,5 @@
 const { Telegraf } = require('telegraf');
-const bot = new Telegraf(process.env.TELEGRAM_TOKEN);
+const bot = new Telegraf(7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0);
 
 // Получаем ID администратора
 const ADMIN_ID = '744187097'; // Замените на свой ID, чтобы получать уведомления
