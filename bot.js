@@ -41,9 +41,9 @@ bot.on('photo', async (ctx) => {
   const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${filePath}`;
 
   // Печатаем ссылку на файл
-  console.log(fileUrl);
+  console.log(fileUrl);  // Для дебага, чтобы проверить правильность URL
 
-  // Отправляем ссылку админу
+  // Отправляем ссылку админу и фото
   bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото. File ID: ${photoId}`);
   bot.telegram.sendPhoto(ADMIN_ID, fileUrl, { caption: `Фото от ${user}` });
 
@@ -51,8 +51,8 @@ bot.on('photo', async (ctx) => {
   ctx.reply('Спасибо за отправленное фото! Мы обработаем ваш запрос.');
 });
 
-
 // Запуск бота
 bot.launch();
 
 console.log('Бот запущен');
+console.log(fileUrl);
