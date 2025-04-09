@@ -19,7 +19,7 @@ bot.action('order', (ctx) => {
   return ctx.editMessageText('Выберите способ оформления:', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📷 Скин по фото', callback_data: 'photo' }],
+        [{ text: '📷 Скин по фото. Отправьте фото вашего скина!', callback_data: 'photo' }],
         [{ text: '🎮 Сформировать скин', web_app: { url: 'https://telegram-mini-app-three-rho.vercel.app' } }]
       ]
     }
@@ -40,7 +40,7 @@ bot.on('photo', async (ctx) => {
 
   // Отправляем фото и ник администратору
   bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото. File ID: ${photoId}`);
-  bot.telegram.sendPhoto(ADMIN_ID, fileUrl, { caption: `Фото отправлено пользователем ${user}` });
+  bot.telegram.sendPhoto(ADMIN_ID, fileUrl, { caption: `Фото от ${user}` });
 
   // Ответ пользователю
   ctx.reply('Спасибо за отправленное фото! Мы обработаем ваш запрос.');
