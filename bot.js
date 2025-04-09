@@ -57,7 +57,7 @@ bot.on('photo', async (ctx) => {
   const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
 
   // Отправляем ссылку админу
-  bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
+  bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.Заказа номер ${orderId}`);
 
   // Отправляем саму фотографию админу с подписью
   bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
@@ -84,7 +84,7 @@ bot.action(/^cancel_(\d+)$/, (ctx) => {
   ctx.editMessageText('Заказ был отменен. Выберите способ оформления:', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📷 Скин по фото. Отправьте фото вашего скина!', callback_data: 'photo' }],
+        [{ text: '📷 Скин по фото.', callback_data: 'photo' }],
         [{ text: '🎮 Сформировать скин', web_app: { url: 'https://telegram-mini-app-three-rho.vercel.app' } }]
       ]
     }
