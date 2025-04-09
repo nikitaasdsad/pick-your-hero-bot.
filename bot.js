@@ -49,10 +49,16 @@ bot.on('photo', async (ctx) => {
   const message = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
 
   // Сохраняем ID сообщения для удаления в случае отмены
-  messages[orderId] = message.message_id;
+  messages[orderId] = {
+    messageId: message.message_id,
+    photoMessageId: null  // Для хранения ID сообщения с фото
+  };
 
   // Отправляем саму фотографию админу с подписью
-  await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
+  const photoMessage = await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
+
+  // Сохраняем ID сообщения с фото
+  messages[orderId].photoMessageId = photoMessage.message_id;
 
   // Запрашиваем отмену запроса
   const cancelButton = {
@@ -71,13 +77,17 @@ bot.on('photo', async (ctx) => {
 bot.action(/^cancel_(\d+)$/, (ctx) => {
   const orderId = ctx.match[1];  // Получаем номер заказа из callback_data
 
-  // Удаляем сообщение о запросе
+  // Удаляем сообщения: сообщение о фото и сообщение с фото
   if (messages[orderId]) {
-    bot.telegram.deleteMessage(ADMIN_ID, messages[orderId]);
-    delete messages[orderId];  // Удаляем ID сообщения из объекта
-  }
+    const messageData = messages[orderId];
+    
+    // Удаляем оба сообщения
+    bot.telegram.deleteMessage(ADMIN_ID, messageData.messageId);
+    bot.telegram.deleteMessage(ADMIN_ID, messageData.photoMessageId);
 
-  bot.telegram.sendMessage(ADMIN_ID, `Заказ номер ${orderId} отменен.`);
+    // Удаляем ID сообщения из объекта
+    delete messages[orderId];
+  }
 
   // Возвращаем пользователя к выбору оформления заявки
   ctx.editMessageText('Заказ был отменен. Выберите способ оформления:', {
@@ -94,4 +104,3 @@ bot.action(/^cancel_(\d+)$/, (ctx) => {
 bot.launch();
 
 console.log('Бот запущен');
-
