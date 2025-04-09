@@ -33,7 +33,7 @@ bot.on('photo', async (ctx) => {
 
   // Получаем файл с помощью File ID
   const file = await bot.telegram.getFile(photoId);
-  const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${file.file_path}`;
+  const fileUrl = `https://api.telegram.org/file/bot7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0/${file.file_path}`;
 
   // Сохраняем информацию о фотографии
   ctx.reply(`Пользователь ${user} отправил фотографию!`);
