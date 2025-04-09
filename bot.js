@@ -86,18 +86,17 @@ bot.action('photo', (ctx) => {
 bot.on('photo', async (ctx) => {
   const userId = ctx.from.id; // Получаем ID пользователя
 
-  // Если пользователь не в процессе оформления заявки, пропускаем
+  // Если пользователь уже в процессе оформления заявки, продолжаем
   if (!usersInProcess[userId]) {
+    // Если еще нет заявки, отправим ответ, что он не начал заявку
     return ctx.reply('Вы не начали оформление заявки. Нажмите на "Оформить заявку".');
   }
 
-  // Увеличиваем номер заказа
-  orderId++;
-
+  orderId++;  // Увеличиваем номер заказа
   const user = ctx.from.username || ctx.from.first_name;  // Получаем имя или ник пользователя
-  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего фото
+  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
 
-  // Отправляем сообщение админу с текстом
+  // Отправляем сообщение админу
   const message = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
 
   // Сохраняем ID сообщения для удаления в случае отмены
@@ -135,7 +134,7 @@ bot.action(/^cancel_(\d+)$/, (ctx) => {
   // Удаляем сообщения: сообщение о фото и сообщение с фото
   if (messages[orderId]) {
     const messageData = messages[orderId];
-
+    
     // Удаляем оба сообщения
     bot.telegram.deleteMessage(ADMIN_ID, messageData.messageId);
     bot.telegram.deleteMessage(ADMIN_ID, messageData.photoMessageId);
