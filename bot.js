@@ -1,16 +1,14 @@
 const { Telegraf } = require('telegraf');
-const bot = new Telegraf(7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0);
+const bot = new Telegraf('7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0');  // Токен твоего бота
 
-// Получаем ID администратора
-const ADMIN_ID = '744187097'; // Замените на свой ID, чтобы получать уведомления
+const ADMIN_ID = '744187097';  // Твой Telegram ID
 
 // Обработка команды /start
 bot.start((ctx) => {
   return ctx.reply('Добро пожаловать в Pick Your Hero!', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '🧾 Оформить заявку', callback_data: 'order' }],
-        [{ text: '💬 Связаться с нами', callback_data: 'contact' }]
+        [{ text: '🧾 Оформить заявку', callback_data: 'order' }]
       ]
     }
   });
@@ -30,7 +28,7 @@ bot.action('order', (ctx) => {
 
 // Обработка сообщений с фотографиями
 bot.on('photo', (ctx) => {
-  const user = ctx.from.username || ctx.from.first_name;  // Получаем никнейм пользователя или его имя
+  const user = ctx.from.username || ctx.from.first_name;  // Получаем ник пользователя или его имя
   const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Берём самый лучший размер фото
 
   // Сохраняем информацию о фотографии
