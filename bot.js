@@ -55,4 +55,3 @@ bot.on('photo', async (ctx) => {
 bot.launch();
 
 console.log('Бот запущен');
-console.log(fileUrl);
