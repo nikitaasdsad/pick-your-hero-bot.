@@ -28,23 +28,29 @@ bot.action('order', (ctx) => {
 
 // Обработка сообщений с фотографиями
 bot.on('photo', async (ctx) => {
-  const user = ctx.from.username || ctx.from.first_name;  // Получаем ник пользователя или его имя
-  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Берём самый лучший размер фото
+  const user = ctx.from.username || ctx.from.first_name;  // Получаем имя или ник пользователя
+  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
 
   // Получаем файл с помощью File ID
   const file = await bot.telegram.getFile(photoId);
-  const fileUrl = `https://api.telegram.org/file/bot7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0/${file.file_path}`;
 
-  // Сохраняем информацию о фотографии
-  ctx.reply(`Пользователь ${user} отправил фотографию!`);
+  // Путь к файлу будет в file.file_path
+  const filePath = file.file_path;  // Пример: "photos/file_1.jpg"
 
-  // Отправляем фото и ник администратору
+  // Формируем URL для скачивания файла
+  const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${filePath}`;
+
+  // Печатаем ссылку на файл
+  console.log(fileUrl);
+
+  // Отправляем ссылку админу
   bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото. File ID: ${photoId}`);
   bot.telegram.sendPhoto(ADMIN_ID, fileUrl, { caption: `Фото от ${user}` });
 
   // Ответ пользователю
   ctx.reply('Спасибо за отправленное фото! Мы обработаем ваш запрос.');
 });
+
 
 // Запуск бота
 bot.launch();
