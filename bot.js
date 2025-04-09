@@ -3,6 +3,7 @@ const bot = new Telegraf('7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0');  // 
 
 const ADMIN_ID = '744187097';  // Твой Telegram ID
 let orderId = 0;  // Переменная для отслеживания номера заказа
+let messages = {};  // Объект для хранения ID сообщений
 
 // Обработка команды /start
 bot.start((ctx) => {
@@ -38,18 +39,6 @@ bot.action('photo', (ctx) => {
   });
 });
 
-// Обработка кнопки "Назад"
-bot.action('order', (ctx) => {
-  return ctx.editMessageText('Выберите способ оформления:', {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📷 Скин по фото. Отправьте фото вашего скина!', callback_data: 'photo' }],
-        [{ text: '🎮 Сформировать скин', web_app: { url: 'https://telegram-mini-app-three-rho.vercel.app' } }]
-      ]
-    }
-  });
-});
-
 // Обработка сообщений с фотографиями
 bot.on('photo', async (ctx) => {
   orderId++;  // Увеличиваем номер заказа
@@ -57,10 +46,13 @@ bot.on('photo', async (ctx) => {
   const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
 
   // Отправляем ссылку админу
-  bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.Заказа номер ${orderId}`);
+  const message = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
+
+  // Сохраняем ID сообщения для удаления в случае отмены
+  messages[orderId] = message.message_id;
 
   // Отправляем саму фотографию админу с подписью
-  bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
+  await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
 
   // Запрашиваем отмену запроса
   const cancelButton = {
@@ -78,13 +70,20 @@ bot.on('photo', async (ctx) => {
 // Обработка отмены запроса
 bot.action(/^cancel_(\d+)$/, (ctx) => {
   const orderId = ctx.match[1];  // Получаем номер заказа из callback_data
+
+  // Удаляем сообщение о запросе
+  if (messages[orderId]) {
+    bot.telegram.deleteMessage(ADMIN_ID, messages[orderId]);
+    delete messages[orderId];  // Удаляем ID сообщения из объекта
+  }
+
   bot.telegram.sendMessage(ADMIN_ID, `Заказ номер ${orderId} отменен.`);
 
   // Возвращаем пользователя к выбору оформления заявки
   ctx.editMessageText('Заказ был отменен. Выберите способ оформления:', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📷 Скин по фото.', callback_data: 'photo' }],
+        [{ text: '📷 Скин по фото. Отправьте фото вашего скина!', callback_data: 'photo' }],
         [{ text: '🎮 Сформировать скин', web_app: { url: 'https://telegram-mini-app-three-rho.vercel.app' } }]
       ]
     }
@@ -95,3 +94,4 @@ bot.action(/^cancel_(\d+)$/, (ctx) => {
 bot.launch();
 
 console.log('Бот запущен');
+
