@@ -86,9 +86,8 @@ bot.action('photo', (ctx) => {
 bot.on('photo', async (ctx) => {
   const userId = ctx.from.id; // Получаем ID пользователя
 
-  // Если пользователь уже в процессе оформления заявки, продолжаем
+  // Если пользователь не в процессе оформления заявки, пропускаем
   if (!usersInProcess[userId]) {
-    // Если еще нет заявки, отправим ответ, что он не начал заявку
     return ctx.reply('Вы не начали оформление заявки. Нажмите на "Оформить заявку".');
   }
 
@@ -97,9 +96,13 @@ bot.on('photo', async (ctx) => {
     return ctx.reply('Пожалуйста, отправьте только одно фото.');
   }
 
-  orderId++;  // Увеличиваем номер заказа
+  // Получаем file_id самого лучшего фото
+  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+
+  // Инкрементируем номер заявки
+  orderId++;
+
   const user = ctx.from.username || ctx.from.first_name;  // Получаем имя или ник пользователя
-  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
 
   // Отправляем сообщение админу
   const message = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
