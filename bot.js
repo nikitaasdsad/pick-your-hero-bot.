@@ -1,5 +1,5 @@
 const { Telegraf } = require('telegraf');
-const bot = new Telegraf('YOUR_BOT_TOKEN'); // 🔐 Замени на свой токен
+const bot = new Telegraf('7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0'); // 🔐 Замени на свой токен
 
 const ADMIN_ID = '744187097';  // ID админа
 let orderId = 0;
