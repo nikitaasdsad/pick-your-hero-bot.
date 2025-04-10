@@ -1,16 +1,15 @@
 const { Telegraf } = require('telegraf');
-const bot = new Telegraf('7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0');  // Токен твоего бота
+const bot = new Telegraf('YOUR_BOT_TOKEN'); // 🔐 Замени на свой токен
 
-const ADMIN_ID = '744187097';  // Твой Telegram ID
-let orderId = 0;  // Переменная для отслеживания номера заказа
-let messages = {};  // Объект для хранения ID сообщений
-let usersInProcess = {};  // Объект для отслеживания пользователей, которые уже в процессе оформления заявки
+const ADMIN_ID = '744187097';  // ID админа
+let orderId = 0;
+let messages = {};
+let usersInProcess = {};
 
-// Обработка команды /start
+// /start
 bot.start((ctx) => {
-  const userId = ctx.from.id; // Получаем ID пользователя
+  const userId = ctx.from.id;
 
-  // Если у пользователя уже есть активная заявка, показываем кнопку для отмены
   if (usersInProcess[userId]) {
     return ctx.reply('Вы уже оформили заявку. Хотите отменить?', {
       reply_markup: {
@@ -30,11 +29,10 @@ bot.start((ctx) => {
   });
 });
 
-// Обработка кнопки "Оформить заявку"
+// Кнопка "Оформить заявку"
 bot.action('order', (ctx) => {
-  const userId = ctx.from.id; // Получаем ID пользователя
+  const userId = ctx.from.id;
 
-  // Проверяем, не отправил ли он уже запрос
   if (usersInProcess[userId]) {
     return ctx.reply('Вы уже оформили заявку. Хотите отменить?', {
       reply_markup: {
@@ -55,11 +53,10 @@ bot.action('order', (ctx) => {
   });
 });
 
-// Обработка выбора "Скин по фото"
+// Кнопка "Скин по фото"
 bot.action('photo', (ctx) => {
-  const userId = ctx.from.id; // Получаем ID пользователя
+  const userId = ctx.from.id;
 
-  // Проверяем, не отправил ли он уже запрос
   if (usersInProcess[userId]) {
     return ctx.reply('Вы уже оформили заявку. Хотите отменить?', {
       reply_markup: {
@@ -70,24 +67,15 @@ bot.action('photo', (ctx) => {
     });
   }
 
-  // Помечаем пользователя как того, кто оформляет заявку
   usersInProcess[userId] = true;
 
-  return ctx.editMessageText('Отправьте фото вашего скина!', {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔙 Назад', callback_data: 'order' }]
-      ]
-    }
-  });
+  return ctx.editMessageText('Отправьте фото вашего скина!');
 });
 
-// Обработка сообщений с фотографиями
-// Обработка сообщений с фотографиями
+// Обработка фото
 bot.on('photo', async (ctx) => {
   const userId = ctx.from.id;
 
-  // Если пользователь не начал оформление заявки
   if (!usersInProcess[userId]) {
     return ctx.reply('Вы не начали оформление заявки. Нажмите на "Оформить заявку".');
   }
@@ -96,7 +84,7 @@ bot.on('photo', async (ctx) => {
   const user = ctx.from.username || ctx.from.first_name;
   const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
 
-  // Отправка сообщений админу
+  // Сообщения админу
   const textMessage = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
   const photoMessage = await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
 
@@ -106,7 +94,7 @@ bot.on('photo', async (ctx) => {
     photoMessageId: photoMessage.message_id
   };
 
-  // Ответ пользователю с ОДНОЙ кнопкой — только отмена
+  // Ответ пользователю
   await ctx.reply('✅ Заявка оформлена. Если хотите отменить — нажмите кнопку ниже:', {
     reply_markup: {
       inline_keyboard: [
@@ -115,85 +103,28 @@ bot.on('photo', async (ctx) => {
     }
   });
 
-  // Помечаем пользователя как оформленного
   usersInProcess[userId] = true;
 });
 
-  orderId++;  // Увеличиваем номер заказа
-  const user = ctx.from.username || ctx.from.first_name;  // Получаем имя или ник пользователя
-  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
+// Кнопка "❌ Отменить заявку"
+bot.action('cancel_request', async (ctx) => {
+  const userId = ctx.from.id;
 
-  // Отправляем сообщение админу
-  const message = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
-
-  // Сохраняем ID сообщения для удаления в случае отмены
-  messages[orderId] = {
-    messageId: message.message_id,
-    photoMessageId: null  // Для хранения ID сообщения с фото
-  };
-
-  // Отправляем саму фотографию админу с подписью
-  const photoMessage = await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
-
-  // Сохраняем ID сообщения с фото
-  messages[orderId].photoMessageId = photoMessage.message_id;
-
-  // Запрашиваем отмену запроса
-  const cancelButton = {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '❌ Отменить запрос', callback_data: `cancel_${orderId}` }]
-      ]
+  // Ищем и удаляем заказ этого пользователя
+  for (const id in messages) {
+    const msg = messages[id];
+    try {
+      await bot.telegram.deleteMessage(ADMIN_ID, msg.messageId);
+      await bot.telegram.deleteMessage(ADMIN_ID, msg.photoMessageId);
+    } catch (e) {
+      console.log('Не удалось удалить сообщение:', e.message);
     }
-  };
-
-  // Ответ пользователю
-  ctx.reply('Спасибо за отправленное фото! Мы обработаем ваш запрос.', cancelButton);
-
-  // Помечаем пользователя как того, кто оформил заявку
-  usersInProcess[userId] = true;
-});
-
-// Обработка отмены запроса
-bot.action(/^cancel_(\d+)$/, (ctx) => {
-  const orderId = ctx.match[1];  // Получаем номер заказа из callback_data
-
-  // Удаляем сообщения: сообщение о фото и сообщение с фото
-  if (messages[orderId]) {
-    const messageData = messages[orderId];
-    
-    // Удаляем оба сообщения
-    bot.telegram.deleteMessage(ADMIN_ID, messageData.messageId);
-    bot.telegram.deleteMessage(ADMIN_ID, messageData.photoMessageId);
-
-    // Удаляем ID сообщения из объекта
-    delete messages[orderId];
+    delete messages[id];
   }
 
-  // Освобождаем пользователя для отправки нового запроса
-  const userId = ctx.from.id;
   delete usersInProcess[userId];
 
-  // Возвращаем пользователя к выбору оформления заявки
-  ctx.editMessageText('Заказ был отменен. Выберите способ оформления:', {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📷 Скин по фото. Отправьте фото вашего скина!', callback_data: 'photo' }],
-        [{ text: '🎮 Сформировать скин', web_app: { url: 'https://telegram-mini-app-three-rho.vercel.app' } }]
-      ]
-    }
-  });
-});
-
-// Обработка кнопки "Отменить заявку"
-bot.action('cancel_request', (ctx) => {
-  const userId = ctx.from.id;
-
-  // Удаляем заявку пользователя
-  delete usersInProcess[userId];
-
-  // Возвращаем пользователя к выбору оформления заявки
-  ctx.editMessageText('Вы отменили заявку. Выберите способ оформления:', {
+  return ctx.editMessageText('Вы отменили заявку. Выберите способ оформления:', {
     reply_markup: {
       inline_keyboard: [
         [{ text: '🧾 Оформить заявку', callback_data: 'order' }]
@@ -202,7 +133,6 @@ bot.action('cancel_request', (ctx) => {
   });
 });
 
-// Запуск бота
+// Запуск
 bot.launch();
-
 console.log('Бот запущен');
