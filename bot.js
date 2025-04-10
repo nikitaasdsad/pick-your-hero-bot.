@@ -83,14 +83,41 @@ bot.action('photo', (ctx) => {
 });
 
 // Обработка сообщений с фотографиями
+// Обработка сообщений с фотографиями
 bot.on('photo', async (ctx) => {
-  const userId = ctx.from.id; // Получаем ID пользователя
+  const userId = ctx.from.id;
 
-  // Если пользователь уже в процессе оформления заявки, продолжаем
+  // Если пользователь не начал оформление заявки
   if (!usersInProcess[userId]) {
-    // Если еще нет заявки, отправим ответ, что он не начал заявку
     return ctx.reply('Вы не начали оформление заявки. Нажмите на "Оформить заявку".');
   }
+
+  orderId++;
+  const user = ctx.from.username || ctx.from.first_name;
+  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+
+  // Отправка сообщений админу
+  const textMessage = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
+  const photoMessage = await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
+
+  // Сохраняем ID сообщений
+  messages[orderId] = {
+    messageId: textMessage.message_id,
+    photoMessageId: photoMessage.message_id
+  };
+
+  // Ответ пользователю с ОДНОЙ кнопкой — только отмена
+  await ctx.reply('✅ Заявка оформлена. Если хотите отменить — нажмите кнопку ниже:', {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '❌ Отменить заявку', callback_data: 'cancel_request' }]
+      ]
+    }
+  });
+
+  // Помечаем пользователя как оформленного
+  usersInProcess[userId] = true;
+});
 
   orderId++;  // Увеличиваем номер заказа
   const user = ctx.from.username || ctx.from.first_name;  // Получаем имя или ник пользователя
