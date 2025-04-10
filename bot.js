@@ -69,7 +69,13 @@ bot.action('photo', (ctx) => {
 
   usersInProcess[userId] = true;
 
-  return ctx.editMessageText('Отправьте фото вашего скина!');
+  return ctx.editMessageText('Отправьте фото вашего скина!', {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔙 Назад', callback_data: 'order' }]
+      ]
+    }
+  });
 });
 
 // Обработка фото
