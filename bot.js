@@ -57,22 +57,30 @@ bot.action('order', (ctx) => {
 bot.action('photo', (ctx) => {
   const userId = ctx.from.id;
 
-  if (usersInProcess[userId]) {
-    return ctx.reply('Вы уже оформили заявку. Хотите отменить?', {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '❌ Отменить заявку', callback_data: 'cancel_request' }]
-        ]
-      }
-    });
-  }
-
-  usersInProcess[userId] = true;
+  // Помечаем, что пользователь начал оформление заявки
+  usersInProcess[userId] = 'photo_pending';
 
   return ctx.editMessageText('Отправьте фото вашего скина!', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '🔙 Назад', callback_data: 'order' }]
+        [{ text: '🔙 Назад', callback_data: 'go_back' }]
+      ]
+    }
+  });
+});
+
+// Кнопка "Назад"
+bot.action('go_back', (ctx) => {
+  const userId = ctx.from.id;
+
+  // Сбрасываем статус пользователя
+  delete usersInProcess[userId];
+
+  return ctx.editMessageText('Выберите способ оформления:', {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📷 Скин по фото. Отправьте фото вашего скина!', callback_data: 'photo' }],
+        [{ text: '🎮 Сформировать скин', web_app: { url: 'https://telegram-mini-app-three-rho.vercel.app' } }]
       ]
     }
   });
@@ -83,13 +91,8 @@ bot.on('photo', async (ctx) => {
   const userId = ctx.from.id;
 
   // Если пользователь не начал оформление заявки
-  if (!usersInProcess[userId]) {
+  if (!usersInProcess[userId] || usersInProcess[userId] !== 'photo_pending') {
     return ctx.reply('Вы не начали оформление заявки. Нажмите на "Оформить заявку".');
-  }
-
-  // Если он уже присылал фото — игнорируем
-  if (usersInProcess[userId] === 'photo_sent') {
-    return; // просто молча пропускаем
   }
 
   // Помечаем, что фото получено
