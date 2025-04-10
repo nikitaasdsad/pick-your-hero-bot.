@@ -1,12 +1,27 @@
 const { Telegraf } = require('telegraf');
-const bot = new Telegraf('7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0'); // 🔐 Замени на свой токен
+const bot = new Telegraf('7209885388:AAEOBty7DIXSgY_F0_05DhUntMy3jpCoPW0');
 
-const ADMIN_ID = '744187097';  // ID админа
+const ADMIN_ID = '744187097';
 let orderId = 0;
 let messages = {};
 let usersInProcess = {};
+let lastRequestTime = {};
+const COOLDOWN_MS = 5000; // 5 сек
 
-// /start
+// ======================= Middleware для антиспама =======================
+bot.use((ctx, next) => {
+  const userId = ctx.from?.id;
+  const now = Date.now();
+
+  if (lastRequestTime[userId] && now - lastRequestTime[userId] < COOLDOWN_MS) {
+    return; // спам — пропускаем
+  }
+
+  lastRequestTime[userId] = now;
+  return next();
+});
+
+// ======================= Команда /start =======================
 bot.start((ctx) => {
   const userId = ctx.from.id;
 
@@ -29,7 +44,12 @@ bot.start((ctx) => {
   });
 });
 
-// Кнопка "Оформить заявку"
+// ======================= Команда /help =======================
+bot.command('help', (ctx) => {
+  ctx.reply('Нажмите /start чтобы начать оформление заявки.\nЕсли возникнут вопросы — пишите админу.');
+});
+
+// ======================= Кнопка "Оформить заявку" =======================
 bot.action('order', (ctx) => {
   const userId = ctx.from.id;
 
@@ -53,7 +73,7 @@ bot.action('order', (ctx) => {
   });
 });
 
-// Кнопка "Скин по фото"
+// ======================= Кнопка "Скин по фото" =======================
 bot.action('photo', (ctx) => {
   const userId = ctx.from.id;
 
@@ -69,36 +89,44 @@ bot.action('photo', (ctx) => {
 
   usersInProcess[userId] = true;
 
-  return ctx.editMessageText('Отправьте фото вашего скина!');
+  // Автоматическая разблокировка через 30 минут
+  setTimeout(() => {
+    delete usersInProcess[userId];
+  }, 30 * 60 * 1000);
+
+  return ctx.editMessageText('Отправьте фото вашего скина!', {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔙 Назад', callback_data: 'order' }]
+      ]
+    }
+  });
 });
 
-// Обработка фото
+// ======================= Приём фотографии =======================
 bot.on('photo', async (ctx) => {
   const userId = ctx.from.id;
 
-  // Если пользователь не начал оформление заявки
   if (!usersInProcess[userId]) {
     return ctx.reply('Вы не начали оформление заявки. Нажмите на "Оформить заявку".');
   }
 
-  // Если он уже присылал фото — игнорируем
-  if (usersInProcess[userId] === 'photo_sent') {
-    return; // просто молча пропускаем
-  }
-
-  // Помечаем, что фото получено
-  usersInProcess[userId] = 'photo_sent';
+  // Берём только одно фото
+  const photo = ctx.message.photo.at(-1);
+  if (!photo) return;
 
   orderId++;
   const user = ctx.from.username || ctx.from.first_name;
-  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+  const photoId = photo.file_id;
 
-  const textMessage = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
-  const photoMessage = await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
+  console.log(`✅ Новая заявка от @${ctx.from.username || 'без ника'} (${ctx.from.id})`);
+
+  const textMsg = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
+  const photoMsg = await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
 
   messages[orderId] = {
-    messageId: textMessage.message_id,
-    photoMessageId: photoMessage.message_id
+    messageId: textMsg.message_id,
+    photoMessageId: photoMsg.message_id
   };
 
   await ctx.reply('✅ Заявка оформлена. Если хотите отменить — нажмите кнопку ниже:', {
@@ -109,20 +137,19 @@ bot.on('photo', async (ctx) => {
     }
   });
 });
-// Кнопка "❌ Отменить заявку"
-bot.action('cancel_request', async (ctx) => {
+
+// ======================= Обработка отмены заявки =======================
+bot.action('cancel_request', (ctx) => {
   const userId = ctx.from.id;
 
-  // Ищем и удаляем заказ этого пользователя
+  // Удаляем все сообщения у админа, связанные с этим пользователем
   for (const id in messages) {
-    const msg = messages[id];
-    try {
-      await bot.telegram.deleteMessage(ADMIN_ID, msg.messageId);
-      await bot.telegram.deleteMessage(ADMIN_ID, msg.photoMessageId);
-    } catch (e) {
-      console.log('Не удалось удалить сообщение:', e.message);
+    if (messages[id]) {
+      const { messageId, photoMessageId } = messages[id];
+      bot.telegram.deleteMessage(ADMIN_ID, messageId).catch(() => {});
+      bot.telegram.deleteMessage(ADMIN_ID, photoMessageId).catch(() => {});
+      delete messages[id];
     }
-    delete messages[id];
   }
 
   delete usersInProcess[userId];
@@ -136,6 +163,6 @@ bot.action('cancel_request', async (ctx) => {
   });
 });
 
-// Запуск
+// ======================= Запуск =======================
 bot.launch();
-console.log('Бот запущен');
+console.log('Бот запущен 🚀');
