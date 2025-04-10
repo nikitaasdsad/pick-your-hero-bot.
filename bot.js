@@ -83,38 +83,28 @@ bot.action('photo', (ctx) => {
 });
 
 // Обработка сообщений с фотографиями
-// Обработка сообщений с фотографиями
 bot.on('photo', async (ctx) => {
-  const userId = ctx.from.id;
+  const userId = ctx.from.id; // Получаем ID пользователя
 
+  // Если пользователь уже в процессе оформления заявки, продолжаем
   if (!usersInProcess[userId]) {
+    // Если еще нет заявки, отправим ответ, что он не начал заявку
     return ctx.reply('Вы не начали оформление заявки. Нажмите на "Оформить заявку".');
   }
 
-  orderId++;
-  const user = ctx.from.username || ctx.from.first_name;
-  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+  orderId++;  // Увеличиваем номер заказа
+  const user = ctx.from.username || ctx.from.first_name;  // Получаем имя или ник пользователя
+  const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;  // Получаем file_id самого лучшего размера
 
   // Отправляем сообщение админу
   const message = await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} прислал фото.`);
 
+  // Сохраняем ID сообщения для удаления в случае отмены
   messages[orderId] = {
     messageId: message.message_id,
-    photoMessageId: null
+    photoMessageId: null  // Для хранения ID сообщения с фото
   };
 
-  const photoMessage = await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
-  messages[orderId].photoMessageId = photoMessage.message_id;
-
-  // Ответ пользователю с кнопкой, как при старте
-  await ctx.reply('Спасибо за отправленное фото! Мы обработаем ваш запрос. Если хотите отменить и отправить новую заявку, нажмите кнопку ниже.', {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '❌ Отменить заявку', callback_data: 'cancel_request' }]
-      ]
-    }
-  });
-});
   // Отправляем саму фотографию админу с подписью
   const photoMessage = await bot.telegram.sendPhoto(ADMIN_ID, photoId, { caption: `Фото от ${user}` });
 
