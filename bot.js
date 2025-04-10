@@ -5,7 +5,6 @@ const ADMIN_ID = '744187097';
 let orderId = 0;
 let messages = {};
 let usersInProcess = {};
-let userComments = {};  // Объект для хранения комментариев пользователей
 
 // ======================= Команда /start =======================
 bot.start((ctx) => {
@@ -101,70 +100,13 @@ bot.on('photo', async (ctx) => {
     photoMessageId: photoMessage.message_id
   };
 
-  await ctx.reply('✅ Заявка оформлена. Хотите оставить комментарий?', {
+  await ctx.reply('✅ Заявка оформлена. Если хотите отменить — нажмите кнопку ниже:', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '💬 Оставить комментарий', callback_data: 'add_comment' }],
-        [{ text: '⏭️ Пропустить', callback_data: 'skip_comment' }]
+        [{ text: '❌ Отменить заявку', callback_data: 'cancel_request' }]
       ]
     }
   });
-});
-
-// ======================= Обработка кнопки "Оставить комментарий" =======================
-bot.action('add_comment', (ctx) => {
-  const userId = ctx.from.id;
-
-  return ctx.reply('Напишите ваш комментарий:', {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔙 Назад', callback_data: 'order' }]
-      ]
-    }
-  });
-});
-
-// ======================= Получение комментария от пользователя =======================
-bot.on('text', async (ctx) => {
-  const userId = ctx.from.id;
-
-  if (ctx.message.text && usersInProcess[userId] && !userComments[userId]) {
-    // Сохраняем комментарий пользователя
-    userComments[userId] = ctx.message.text;
-
-    const user = ctx.from.username || ctx.from.first_name;
-    const photoMessageId = messages[orderId].photoMessageId;
-
-    // Отправляем сообщение админу с фото, информацией пользователя и комментарием
-    await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} оставил комментарий: \n"${ctx.message.text}"`);
-
-    // Отправляем фото вместе с комментарием
-    await bot.telegram.sendPhoto(ADMIN_ID, photoMessageId, {
-      caption: `Фото от ${user}\nКомментарий: "${ctx.message.text}"`
-    });
-
-    await ctx.reply('Спасибо за ваш комментарий! Заявка оформлена.');
-
-    delete usersInProcess[userId]; // Очистка состояния пользователя
-    delete userComments[userId];  // Очистка комментария
-  }
-});
-
-// ======================= Пропустить комментарий =======================
-bot.action('skip_comment', async (ctx) => {
-  const userId = ctx.from.id;
-  const user = ctx.from.username || ctx.from.first_name;
-  const photoMessageId = messages[orderId].photoMessageId;
-
-  // Отправляем администратору только фото и информацию без комментария
-  await bot.telegram.sendMessage(ADMIN_ID, `Пользователь ${user} с ником @${ctx.from.username || 'не указан'} не оставил комментарий.`);
-  await bot.telegram.sendPhoto(ADMIN_ID, photoMessageId, {
-    caption: `Фото от ${user}`
-  });
-
-  await ctx.reply('Вы пропустили комментарий. Заявка оформлена.');
-
-  delete usersInProcess[userId]; // Очистка состояния пользователя
 });
 
 // ======================= Обработка отмены заявки =======================
